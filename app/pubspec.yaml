@@ -1,0 +1,29 @@
+name: JanSetu
+description: A simple app for reporting civic issues (potholes, garbage, etc.) with photo and location.
+publish_to: "none"
+
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+    
+  http: ^1.5.0
+  image_picker: ^1.2.0
+  geolocator: ^14.0.2
+  flutter_dotenv: ^6.0.0
+  permission_handler: ^12.0.1
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/
