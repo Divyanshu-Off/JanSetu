@@ -2,7 +2,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
-import '../services/api_service.dart'; // adjust path as needed
+import 'package:permission_handler/permission_handler.dart';
+import '../services/api_service.dart'; // adjust path if needed
 
 class ReportScreen extends StatefulWidget {
   const ReportScreen({super.key});
@@ -16,6 +17,14 @@ class _ReportScreenState extends State<ReportScreen> {
   Position? position;
 
   Future<void> pickImage() async {
+    // CAMERA PERMISSION
+    var status = await Permission.camera.request();
+    if (!status.isGranted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Camera permission denied.'))
+      );
+      return;
+    }
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.camera);
     if (pickedFile != null) {
@@ -24,6 +33,14 @@ class _ReportScreenState extends State<ReportScreen> {
   }
 
   Future<void> getLocation() async {
+    // LOCATION PERMISSION
+    var status = await Permission.locationWhenInUse.request();
+    if (!status.isGranted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Location permission denied.'))
+      );
+      return;
+    }
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -41,38 +58,45 @@ class _ReportScreenState extends State<ReportScreen> {
         return;
       }
     }
-    Position pos = await Geolocator.getCurrentPosition();
-    setState(() => position = pos);
+    try {
+      Position pos = await Geolocator.getCurrentPosition().timeout(const Duration(seconds: 10));
+      setState(() => position = pos);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to get location: $e"))
+      );
+    }
   }
 
   Future<void> submitReport() async {
-    if (descriptionController.text.isEmpty || position == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please add a description and location.'))
-      );
-      return;
-    }
-    bool success = await ApiService.submitIssue(
-      description: descriptionController.text,
-      latitude: position!.latitude,
-      longitude: position!.longitude,
-      image: image,
+  if (descriptionController.text.isEmpty || position == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Please add a description and location.'))
     );
-    if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Report submitted successfully!'))
-      );
-      descriptionController.clear();
-      setState(() {
-        image = null;
-        position = null;
-      });
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Submission failed. Try again!'))
-      );
-    }
+    return;
   }
+  var result = await ApiService.submitIssue(
+    description: descriptionController.text,
+    latitude: position!.latitude,
+    longitude: position!.longitude,
+    image: image,
+  );
+  if (result != null && result['id'] != null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Report submitted! ID: ${result['id']}'))
+    );
+    descriptionController.clear();
+    setState(() {
+      image = null;
+      position = null;
+    });
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Submission failed. Try again!'))
+    );
+  }
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -110,7 +134,7 @@ class _ReportScreenState extends State<ReportScreen> {
               icon: const Icon(Icons.send),
               label: const Text("Submit Report"),
               style: ElevatedButton.styleFrom(
-                minimumSize: const Size.fromHeight(50)
+                  minimumSize: const Size.fromHeight(50)
               ),
               onPressed: submitReport,
             ),

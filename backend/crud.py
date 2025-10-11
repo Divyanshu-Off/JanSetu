@@ -14,5 +14,5 @@ def create_issue(db: Session, issue: schemas.IssueCreate, image_path: str):
     db.refresh(db_issue)
     return db_issue
 
-def get_issues(db: Session):
-    return db.query(models.Issue).all()
+def get_issue(db: Session, issue_id: int):
+    return db.query(models.Issue).filter(models.Issue.id == issue_id).first()

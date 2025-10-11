@@ -43,6 +43,6 @@ async def create_issue(
         longitude=longitude
     ), image_path)
 
-@app.get("/issues/", response_model=list[schemas.IssueResponse])
-def read_issues(db: Session = Depends(get_db)):
-    return crud.get_issues(db)
+@app.get("/issues/{issue_id}", response_model=schemas.IssueResponse)
+def get_issue(issue_id: int, db: Session = Depends(get_db)):
+    return crud.get_issue(db, issue_id)
